@@ -5,6 +5,9 @@
 ## Approach 1: Brute Force – Read Entire File
 
 # Idea: Every client reads the entire file each time
+
+[Client] <--requests-- [Server] <--reads entire-- [Log File]
+
 function get_last_n_lines(file, N):
     lines = read_all_lines(file)
     return last N lines
@@ -21,6 +24,9 @@ function serve_client():
 ---
 
 ## Approach 2: Polling per Client – Incremental Read
+
+[Client 1] <-polls-> [Server] <-reads new lines-> [Log File]
+[Client 2] <-polls-> [Server] <-reads new lines-> [Log File]
 
 # Idea: Track last read position per client, poll for new lines
 function serve_client():
@@ -42,7 +48,14 @@ function serve_client():
 
 ## Approach 3: SSE with Server-Side Polling
 
+[Log File] --poll--> [Server] --broadcast--> [Client 1]
+                               \
+                                --> [Client 2]
+                               \
+                                --> [Client N]
+                                
 # Idea: Server reads new lines once, broadcasts to all clients via SSE
+
 global last_pos = 0
 clients = []
 
@@ -70,6 +83,15 @@ function serve_client(client):
 ---
 
 ## Approach 4: Optimized Event-Driven SSE
+
+       [Log File]
+            |
+       (OS Watcher triggers)
+            |
+        [Server Queues]
+        /       |       \
+   [Client 1] [Client 2] [Client N]
+
 
 # Idea: Use OS-level file watcher to push updates instantly
 clients = []
