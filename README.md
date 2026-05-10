@@ -1,91 +1,148 @@
-1. Problem Statement (Brief)
+# Real-Time Log Viewer
 
-Monitor a log file on the server in real-time.
+A scalable real-time log monitoring system designed to explore different backend architectures for streaming live log updates efficiently to multiple clients.
 
-Show the last 10 lines when a client opens the page.
+The project focuses on backend scalability, real-time communication, efficient file processing, event-driven systems, and low-latency streaming techniques commonly used in production monitoring systems.
 
-Stream new lines as they appear without refreshing.
+---
 
-Handle large files efficiently.
+## Problem Statement
 
-Support multiple clients.
+Build a system to monitor a server log file in real time with the following requirements:
 
-Minimize CPU and disk usage.
+- Show the latest 10 log lines when a client connects
+- Stream new log updates without page refresh
+- Efficiently handle very large log files
+- Support multiple concurrent clients
+- Minimize CPU and disk usage
+- Handle log rotation gracefully
 
-2. Approaches Overview
+---
 
-Approach 1: Brute Force – read entire file each time.
+## Approaches Explored
 
-Approach 2: Polling per Client – read only new lines, client-side polling.
+### 1. Brute Force Approach
+Reads the entire file repeatedly for every request.
 
-Approach 3: SSE with Server-Side Polling – server reads once, pushes to all clients.
+#### Pros
+- Simple implementation
 
-Approach 4: Optimized Event-Driven SSE – OS-level file watcher triggers updates.
+#### Cons
+- High CPU and disk usage
+- Extremely inefficient for large files
+- Poor scalability
 
-3. Approach Comparison Table
-Approach	How it Works	Pros	Cons	Example
-Brute Force	Read entire file each time	Simple	Slow for large files, not scalable	2GB file → high CPU & disk usage
-Polling per Client	Each client tracks last position and polls for new lines	Only reads new lines	CPU grows with clients, small latency	5 clients → 5 reads every 0.5s
-SSE + Server Polling	Server reads once, pushes to all clients via SSE	Single read for all clients	Still polling → small latency	All clients see updates within polling interval
-Event-Driven SSE	OS watcher triggers updates pushed to clients	Real-time, low CPU, scalable, handles log rotation	More complex setup	100 clients receive instant updates from 2GB log
-4. Key Concepts / Fundamentals
+Example:
+A 2GB log file causes heavy repeated reads and high resource consumption.
 
-SSE (Server-Sent Events): Pushes updates from server → client over HTTP.
+---
 
-Polling: Client or server periodically checks for updates.
+### 2. Polling Per Client
+Each client tracks file position and periodically polls for new updates.
 
-File Position Tracking: Keeps last read byte to read only new lines.
+#### Pros
+- Reads only newly appended lines
+- Better than brute force
 
-OS File Watcher: Event-driven mechanism (e.g., inotify / Watchdog) triggers on file change.
+#### Cons
+- CPU usage increases linearly with number of clients
+- Polling introduces latency
+- Redundant reads for multiple clients
 
-Async Queues: Each client has a queue to receive updates independently.
+Example:
+5 clients polling every 0.5 seconds results in 5 repeated reads.
 
-Scalability: Reduce redundant reads and CPU usage for multiple clients.
+---
 
-5. Repository Structure
+### 3. SSE with Server-Side Polling
+Server polls the file once and pushes updates to all connected clients using Server-Sent Events (SSE).
+
+#### Pros
+- Single read shared across all clients
+- Lower CPU usage
+- Better scalability
+
+#### Cons
+- Still depends on polling interval
+- Small latency remains
+
+Example:
+All clients receive updates simultaneously within polling interval.
+
+---
+
+### 4. Event-Driven SSE (Optimized)
+Uses OS-level file watchers to trigger updates only when the log file changes.
+
+#### Pros
+- Real-time streaming
+- Minimal CPU usage
+- Efficient for large files
+- Highly scalable
+- Supports multiple clients efficiently
+
+#### Cons
+- More complex implementation
+
+Example:
+100 clients receive instant updates from a 2GB log file with minimal resource usage.
+
+---
+
+## Architecture Evolution
+
+The project progressively evolves through increasingly scalable approaches:
+
+Brute Force → Polling → SSE → Event-Driven Streaming
+
+Each iteration improves:
+- scalability
+- latency
+- concurrent client handling
+- resource utilization
+
+---
+
+## Key Concepts
+
+### Server-Sent Events (SSE)
+Streams real-time updates from server → client over HTTP.
+
+### File Position Tracking
+Tracks last read byte position to avoid re-reading entire files.
+
+### Polling
+Periodically checks file for updates.
+
+### OS File Watchers
+Uses event-driven mechanisms (e.g. inotify / watchdog) to detect file changes.
+
+### Async Queues
+Maintains independent queues for connected clients.
+
+### Scalability
+Reduces redundant reads and minimizes CPU usage for concurrent clients.
+
+---
+
+## Production Considerations
+
+The project explores several real-world backend engineering concerns:
+
+- concurrent client management
+- efficient file reading
+- event-driven architectures
+- low-latency streaming
+- scalability under high load
+- log rotation handling
+- resource optimization
+
+---
+
+## Repository Structure
+
+```text
 repo/
-├─ README.md                   # This file
-├─ log_viewer_all_approaches.md  # Pseudo-code + explanations for all 4 approaches
-└─ log_viewer_implementations.py # Actual working code for all 4 approaches
-
-6. Tips for Revision
-
-Focus on Approach Evolution: Brute Force → Polling → SSE → Event-Driven.
-
-Remember Tradeoffs: Understand why each approach is better/worse in terms of CPU, latency, and scalability.
-
-Visualize Data Flow: Especially for Approach 4:
-
-File → Watcher → Server Queue → Client SSE
-
-Key Interview Points:
-
-Explain initial 10 lines logic.
-
-Explain how new lines are streamed.
-
-Discuss handling multiple clients.
-
-Mention log rotation handling for large files.
-
-Use Table + Examples: They stick better than long paragraphs.
-
-7. Optional Diagram (for quick recall)
-+------------------+
-|   Log File       |
-+------------------+
-          |
-          v
-+------------------+     File change event triggers
-|  File Watcher    |----------------+
-+------------------+                |
-          |                         |
-          v                         |
-+------------------+                |
-|  Server Queues   | --------------+
-+------------------+
-          |
-          v
-+------------------+
-|  Clients (SSE)   |
-+------------------+
+├─ README.md
+├─ log_viewer_all_approaches.md
+└─ log_viewer_implementations.py
